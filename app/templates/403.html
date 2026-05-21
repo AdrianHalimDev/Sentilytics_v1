@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+
+{% block title %}Access Denied — Sentilytics{% endblock %}
+
+{% block body %}
+<div class="error-page">
+    <div class="error-content">
+        <div class="error-code">403</div>
+        <h2 style="margin-bottom: 8px; color: var(--text-primary);">Akses Ditolak</h2>
+        <p style="color: var(--text-secondary); margin-bottom: 24px;">
+            Anda tidak memiliki izin untuk mengakses halaman ini.
+        </p>
+        <a href="{{ url_for('dashboard.dashboard') }}" class="btn btn-primary">
+            Kembali ke Dashboard
+        </a>
+    </div>
+</div>
+{% endblock %}

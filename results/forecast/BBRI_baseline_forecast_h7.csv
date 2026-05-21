@@ -1,0 +1,8 @@
+step,stock,model,predicted_close,sentiment_assumption,forecast_type
+H+1,BBRI,Baseline LSTM,3456.26,,simulation
+H+2,BBRI,Baseline LSTM,3472.09,,simulation
+H+3,BBRI,Baseline LSTM,3485.95,,simulation
+H+4,BBRI,Baseline LSTM,3497.83,,simulation
+H+5,BBRI,Baseline LSTM,3507.77,,simulation
+H+6,BBRI,Baseline LSTM,3515.89,,simulation
+H+7,BBRI,Baseline LSTM,3522.36,,simulation

@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+
+{% block title %}Prediction Result — Sentilytics{% endblock %}
+{% block page_title %}Prediction Result{% endblock %}
+
+{% block content %}
+<!-- Filter Bar -->
+<div class="filter-bar">
+    <label for="stockSelect">Emiten:</label>
+    <select class="form-select" id="stockSelect" style="width: auto; min-width: 140px;">
+        <option value="BBCA" {% if stock == 'BBCA' %}selected{% endif %}>BBCA</option>
+        <option value="BBRI" {% if stock == 'BBRI' %}selected{% endif %}>BBRI</option>
+    </select>
+
+    <label for="modelSelect">Model:</label>
+    <select class="form-select" id="modelSelect" style="width: auto; min-width: 180px;">
+        <option value="baseline" {% if model == 'baseline' %}selected{% endif %}>Baseline LSTM</option>
+        <option value="hybrid" {% if model == 'hybrid' %}selected{% endif %}>Hybrid LSTM</option>
+    </select>
+
+    <button class="btn btn-primary" onclick="applyPredFilter()">Tampilkan</button>
+</div>
+
+<!-- Summary Cards -->
+<div class="metric-cards">
+    <div class="metric-card primary">
+        <div class="metric-card-header">
+            <span class="metric-card-label">Total Data Prediksi</span>
+            <div class="metric-card-icon">📋</div>
+        </div>
+        <div class="metric-card-value">{{ predictions|length if predictions else 0 }}</div>
+        <div class="metric-card-sub">Jumlah data pada test set</div>
+    </div>
+    <div class="metric-card info">
+        <div class="metric-card-header">
+            <span class="metric-card-label">Model</span>
+            <div class="metric-card-icon">🧠</div>
+        </div>
+        <div class="metric-card-value" style="font-size:18px;">{{ model_label }}</div>
+        <div class="metric-card-sub">{{ stock }}</div>
+    </div>
+</div>
+
+<!-- Full Prediction Table -->
+<div class="card">
+    <div class="card-header">
+        <h3 class="card-title">Seluruh Hasil Prediksi — {{ stock }} {{ model_label }}</h3>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="data-table" id="fullPredTable">
+                <thead>
+                    <tr>
+                        <th>No</th>
+                        <th>Tanggal</th>
+                        <th>Actual Close</th>
+                        <th>Predicted Close</th>
+                        <th>Error</th>
+                        <th>Absolute Error</th>
+                        <th>APE (%)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% if predictions %}
+                        {% for row in predictions %}
+                        <tr>
+                            <td>{{ loop.index }}</td>
+                            <td>{{ row.date }}</td>
+                            <td>Rp {{ "{:,.0f}".format(row.actual_close) }}</td>
+                            <td>Rp {{ "{:,.0f}".format(row.predicted_close) }}</td>
+                            <td>{{ "{:,.2f}".format(row.error) }}</td>
+                            <td>{{ "{:,.2f}".format(row.absolute_error) }}</td>
+                            <td>{{ "{:.4f}".format(row.absolute_percentage_error) }}%</td>
+                        </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr>
+                            <td colspan="7" class="text-center text-muted" style="padding: 40px;">
+                                Data prediksi belum tersedia. Jalankan pipeline training terlebih dahulu.
+                            </td>
+                        </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+function applyPredFilter() {
+    const stock = document.getElementById('stockSelect').value;
+    const model = document.getElementById('modelSelect').value;
+    window.location.href = `/prediction?stock=${stock}&model=${model}`;
+}
+</script>
+{% endblock %}

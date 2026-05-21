@@ -1,0 +1,89 @@
+# ============================================
+# Sentilytics — Configuration
+# ============================================
+
+# --- Stock Settings ---
+stocks:
+  - ticker: "BBCA.JK"
+    name: "BBCA"
+  - ticker: "BBRI.JK"
+    name: "BBRI"
+
+date_range:
+  start: "2023-01-01"
+  end: "2024-12-31"
+
+# --- News Scraping ---
+scraping:
+  sources:
+    - "cnbc"
+    - "kontan"
+  keywords_bbca:
+    - "BBCA"
+    - "Bank Central Asia"
+    - "BCA"
+    - "saham BBCA"
+    - "emiten BBCA"
+  keywords_bbri:
+    - "BBRI"
+    - "Bank Rakyat Indonesia"
+    - "BRI"
+    - "saham BBRI"
+    - "emiten BBRI"
+  keywords_sector:
+    - "saham bank"
+    - "perbankan"
+    - "bank big cap"
+    - "suku bunga"
+    - "kredit perbankan"
+    - "NPL"
+    - "dividen bank"
+
+# --- Model Hyperparameters ---
+model:
+  window_size: 30
+  lstm_units: 64
+  dropout: 0.2
+  dense_output: 1
+  optimizer: "adam"
+  loss: "mse"
+  epochs: 50
+  batch_size: 32
+  train_split: 0.8
+
+# --- Feature Columns ---
+features:
+  baseline:
+    - "open"
+    - "high"
+    - "low"
+    - "close"
+    - "volume"
+  hybrid:
+    - "open"
+    - "high"
+    - "low"
+    - "close"
+    - "volume"
+    - "sentiment_score"
+  target: "target_close_h1"
+
+# --- File Paths ---
+paths:
+  raw_stock: "data/raw/stock"
+  raw_news: "data/raw/news"
+  processed_stock: "data/processed/stock"
+  processed_sentiment: "data/processed/sentiment"
+  processed_fusion: "data/processed/fusion"
+  external_lexicon: "data/external/inset_lexicon"
+  models_trained: "models/trained"
+  models_scalers: "models/scalers"
+  results_predictions: "results/predictions"
+  results_metrics: "results/metrics"
+  results_forecast: "results/forecast"
+  results_figures: "results/figures"
+
+# --- Forecast ---
+forecast:
+  horizon: 7
+  sentiment_lookback: 7

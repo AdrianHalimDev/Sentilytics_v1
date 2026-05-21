@@ -1,0 +1,198 @@
+{% extends "base.html" %}
+
+{% block title %}Admin Panel — Sentilytics{% endblock %}
+{% block page_title %}Admin Panel{% endblock %}
+
+{% block content %}
+<!-- Admin Summary Cards -->
+<div class="metric-cards">
+    <div class="metric-card primary">
+        <div class="metric-card-header">
+            <span class="metric-card-label">Total Users</span>
+            <div class="metric-card-icon">👥</div>
+        </div>
+        <div class="metric-card-value">{{ total_users }}</div>
+        <div class="metric-card-sub">Registered accounts</div>
+    </div>
+
+    <div class="metric-card purple">
+        <div class="metric-card-header">
+            <span class="metric-card-label">Admin Accounts</span>
+            <div class="metric-card-icon">🛡️</div>
+        </div>
+        <div class="metric-card-value">{{ total_admins }}</div>
+        <div class="metric-card-sub">Administrator accounts</div>
+    </div>
+
+    <div class="metric-card success">
+        <div class="metric-card-header">
+            <span class="metric-card-label">Models Trained</span>
+            <div class="metric-card-icon">🧠</div>
+        </div>
+        <div class="metric-card-value">{{ models_trained }}</div>
+        <div class="metric-card-sub">out of 4 total</div>
+    </div>
+
+    <div class="metric-card info">
+        <div class="metric-card-header">
+            <span class="metric-card-label">Datasets Available</span>
+            <div class="metric-card-icon">📁</div>
+        </div>
+        <div class="metric-card-value">{{ datasets_count }}</div>
+        <div class="metric-card-sub">CSV files ready</div>
+    </div>
+</div>
+
+<!-- Model Status -->
+<div class="card mb-3">
+    <div class="card-header">
+        <h3 class="card-title">Status Model</h3>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Emiten</th>
+                        <th>Model</th>
+                        <th>File Model</th>
+                        <th>File Scaler</th>
+                        <th>File Prediksi</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for status in model_status %}
+                    <tr>
+                        <td><span class="badge badge-info">{{ status.stock }}</span></td>
+                        <td>{{ status.model }}</td>
+                        <td>
+                            {% if status.model_exists %}
+                                <span class="status-dot online"></span> Ada
+                            {% else %}
+                                <span class="status-dot offline"></span> Belum ada
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if status.scaler_exists %}
+                                <span class="status-dot online"></span> Ada
+                            {% else %}
+                                <span class="status-dot offline"></span> Belum ada
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if status.prediction_exists %}
+                                <span class="status-dot online"></span> Ada
+                            {% else %}
+                                <span class="status-dot offline"></span> Belum ada
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if status.model_exists and status.scaler_exists and status.prediction_exists %}
+                                <span class="badge badge-success">Ready</span>
+                            {% else %}
+                                <span class="badge badge-warning">Incomplete</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Evaluation Summary -->
+<div class="card mb-3">
+    <div class="card-header">
+        <h3 class="card-title">Evaluasi Semua Model</h3>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Emiten</th>
+                        <th>Model</th>
+                        <th>RMSE</th>
+                        <th>MAE</th>
+                        <th>MAPE (%)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% if all_metrics %}
+                        {% for row in all_metrics %}
+                        <tr>
+                            <td><span class="badge badge-info">{{ row.stock }}</span></td>
+                            <td>
+                                {% if row.model == 'Hybrid LSTM' %}
+                                    <span class="badge badge-primary">{{ row.model }}</span>
+                                {% else %}
+                                    <span class="badge badge-secondary">{{ row.model }}</span>
+                                {% endif %}
+                            </td>
+                            <td class="font-bold">{{ "{:.2f}".format(row.rmse) }}</td>
+                            <td class="font-bold">{{ "{:.2f}".format(row.mae) }}</td>
+                            <td class="font-bold">{{ "{:.4f}".format(row.mape) }}%</td>
+                        </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr>
+                            <td colspan="5" class="text-center text-muted" style="padding: 40px;">
+                                Data evaluasi belum tersedia.
+                            </td>
+                        </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- User List -->
+<div class="card">
+    <div class="card-header">
+        <h3 class="card-title">Daftar User</h3>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="data-table" id="userTable">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Nama</th>
+                        <th>Email</th>
+                        <th>Role</th>
+                        <th>Status</th>
+                        <th>Terdaftar</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for user in users %}
+                    <tr>
+                        <td>{{ user.id }}</td>
+                        <td>{{ user.name }}</td>
+                        <td>{{ user.email }}</td>
+                        <td>
+                            {% if user.role == 'admin' %}
+                                <span class="badge badge-primary">Admin</span>
+                            {% else %}
+                                <span class="badge badge-secondary">User</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if user.is_active %}
+                                <span class="badge badge-success">Active</span>
+                            {% else %}
+                                <span class="badge badge-danger">Inactive</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ user.created_at.strftime('%Y-%m-%d %H:%M') if user.created_at else '—' }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

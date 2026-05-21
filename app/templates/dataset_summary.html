@@ -1,0 +1,135 @@
+{% extends "base.html" %}
+
+{% block title %}Dataset Summary — Sentilytics{% endblock %}
+{% block page_title %}Dataset Summary{% endblock %}
+
+{% block content %}
+<!-- Summary Cards -->
+<div class="metric-cards">
+    <div class="metric-card primary">
+        <div class="metric-card-header">
+            <span class="metric-card-label">Data Saham BBCA</span>
+            <div class="metric-card-icon">📈</div>
+        </div>
+        <div class="metric-card-value">{{ stock_counts.get('BBCA', 0) }}</div>
+        <div class="metric-card-sub">rows in dataset</div>
+    </div>
+
+    <div class="metric-card info">
+        <div class="metric-card-header">
+            <span class="metric-card-label">Data Saham BBRI</span>
+            <div class="metric-card-icon">📈</div>
+        </div>
+        <div class="metric-card-value">{{ stock_counts.get('BBRI', 0) }}</div>
+        <div class="metric-card-sub">rows in dataset</div>
+    </div>
+
+    <div class="metric-card success">
+        <div class="metric-card-header">
+            <span class="metric-card-label">Total Berita</span>
+            <div class="metric-card-icon">📰</div>
+        </div>
+        <div class="metric-card-value">{{ news_count }}</div>
+        <div class="metric-card-sub">articles scraped</div>
+    </div>
+
+    <div class="metric-card purple">
+        <div class="metric-card-header">
+            <span class="metric-card-label">Berita Processed</span>
+            <div class="metric-card-icon">✅</div>
+        </div>
+        <div class="metric-card-value">{{ news_processed_count }}</div>
+        <div class="metric-card-sub">with sentiment scores</div>
+    </div>
+</div>
+
+<!-- Dataset Files -->
+<div class="card mb-3">
+    <div class="card-header">
+        <h3 class="card-title">Status File Dataset</h3>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>File</th>
+                        <th>Path</th>
+                        <th>Status</th>
+                        <th>Size</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for file in dataset_files %}
+                    <tr>
+                        <td class="font-bold">{{ file.name }}</td>
+                        <td class="text-sm text-muted">{{ file.path }}</td>
+                        <td>
+                            {% if file.exists %}
+                                <span class="badge badge-success">Available</span>
+                            {% else %}
+                                <span class="badge badge-danger">Missing</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ file.size }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Sentiment Distribution -->
+{% if sentiment_stats %}
+<div class="grid-2">
+    {% for stock_name, stats in sentiment_stats.items() %}
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">Distribusi Sentimen — {{ stock_name }}</h3>
+        </div>
+        <div class="card-body">
+            <div class="chart-container" style="min-height: 250px;">
+                <canvas id="sentChart{{ stock_name }}"></canvas>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_scripts %}
+{% if sentiment_stats %}
+<script>
+    const sentStats = {{ sentiment_stats | tojson | safe }};
+
+    document.addEventListener('DOMContentLoaded', function() {
+        for (const [stock, data] of Object.entries(sentStats)) {
+            new Chart(document.getElementById('sentChart' + stock), {
+                type: 'doughnut',
+                data: {
+                    labels: ['Positif', 'Netral', 'Negatif'],
+                    datasets: [{
+                        data: [data.positive, data.neutral, data.negative],
+                        backgroundColor: [
+                            'rgba(25,135,84,0.8)',
+                            'rgba(100,116,139,0.8)',
+                            'rgba(220,53,69,0.8)'
+                        ],
+                        borderWidth: 0,
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'bottom' }
+                    }
+                }
+            });
+        }
+    });
+</script>
+{% endif %}
+{% endblock %}

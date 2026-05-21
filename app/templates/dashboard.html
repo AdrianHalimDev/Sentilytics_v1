@@ -1,0 +1,169 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard — Sentilytics{% endblock %}
+{% block page_title %}Dashboard{% endblock %}
+
+{% block content %}
+<!-- Filter Bar -->
+<div class="filter-bar" id="filterBar">
+    <label for="stockSelect">Emiten:</label>
+    <select class="form-select" id="stockSelect" style="width: auto; min-width: 140px;">
+        <option value="BBCA" {% if stock == 'BBCA' %}selected{% endif %}>BBCA</option>
+        <option value="BBRI" {% if stock == 'BBRI' %}selected{% endif %}>BBRI</option>
+    </select>
+
+    <label for="modelSelect">Model:</label>
+    <select class="form-select" id="modelSelect" style="width: auto; min-width: 180px;">
+        <option value="baseline" {% if model == 'baseline' %}selected{% endif %}>Baseline LSTM</option>
+        <option value="hybrid" {% if model == 'hybrid' %}selected{% endif %}>Hybrid LSTM</option>
+    </select>
+
+    <button class="btn btn-primary" id="filterBtn" onclick="applyFilter()">
+        Tampilkan Hasil
+    </button>
+</div>
+
+<!-- Metric Cards -->
+<div class="metric-cards" id="metricCards">
+    <div class="metric-card primary">
+        <div class="metric-card-header">
+            <span class="metric-card-label">Prediksi Close H+1</span>
+            <div class="metric-card-icon">🎯</div>
+        </div>
+        <div class="metric-card-value" id="predH1Value">
+            {% if prediction_h1 is not none %}
+                Rp {{ "{:,.0f}".format(prediction_h1) }}
+            {% else %}
+                —
+            {% endif %}
+        </div>
+        <div class="metric-card-sub">Prediksi harga penutupan hari berikutnya</div>
+    </div>
+
+    <div class="metric-card success">
+        <div class="metric-card-header">
+            <span class="metric-card-label">RMSE</span>
+            <div class="metric-card-icon">📉</div>
+        </div>
+        <div class="metric-card-value" id="rmseValue">
+            {% if metrics %}{{ "{:.2f}".format(metrics.rmse) }}{% else %}—{% endif %}
+        </div>
+        <div class="metric-card-sub">Root Mean Squared Error</div>
+    </div>
+
+    <div class="metric-card warning">
+        <div class="metric-card-header">
+            <span class="metric-card-label">MAE</span>
+            <div class="metric-card-icon">📏</div>
+        </div>
+        <div class="metric-card-value" id="maeValue">
+            {% if metrics %}{{ "{:.2f}".format(metrics.mae) }}{% else %}—{% endif %}
+        </div>
+        <div class="metric-card-sub">Mean Absolute Error</div>
+    </div>
+
+    <div class="metric-card danger">
+        <div class="metric-card-header">
+            <span class="metric-card-label">MAPE</span>
+            <div class="metric-card-icon">📊</div>
+        </div>
+        <div class="metric-card-value" id="mapeValue">
+            {% if metrics %}{{ "{:.4f}".format(metrics.mape) }}%{% else %}—{% endif %}
+        </div>
+        <div class="metric-card-sub">Mean Absolute Percentage Error</div>
+    </div>
+</div>
+
+<!-- Charts Row -->
+<div class="grid-2">
+    <!-- Actual vs Predicted Chart -->
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">Actual vs Predicted Close Price</h3>
+            <span class="badge badge-info">Test Set</span>
+        </div>
+        <div class="card-body">
+            <div class="chart-container">
+                <canvas id="actualVsPredChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Forecast H+7 Chart -->
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">Forecast H+7 (Simulasi)</h3>
+            <span class="badge badge-warning">Simulasi</span>
+        </div>
+        <div class="card-body">
+            <div class="chart-container">
+                <canvas id="forecastChart"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Prediction Table -->
+<div class="card mt-3">
+    <div class="card-header">
+        <h3 class="card-title">Data Prediksi (Sample Terakhir)</h3>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="data-table" id="predictionTable">
+                <thead>
+                    <tr>
+                        <th>Tanggal</th>
+                        <th>Actual Close</th>
+                        <th>Predicted Close</th>
+                        <th>Error</th>
+                        <th>APE (%)</th>
+                    </tr>
+                </thead>
+                <tbody id="predTableBody">
+                    {% if predictions %}
+                        {% for row in predictions[-20:] %}
+                        <tr>
+                            <td>{{ row.date }}</td>
+                            <td>Rp {{ "{:,.0f}".format(row.actual_close) }}</td>
+                            <td>Rp {{ "{:,.0f}".format(row.predicted_close) }}</td>
+                            <td>{{ "{:,.2f}".format(row.error) }}</td>
+                            <td>{{ "{:.4f}".format(row.absolute_percentage_error) }}%</td>
+                        </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr>
+                            <td colspan="5" class="text-center text-muted" style="padding: 40px;">
+                                Data prediksi belum tersedia. Jalankan pipeline training terlebih dahulu.
+                            </td>
+                        </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    // Initialize charts with data from server
+    const chartData = {{ chart_data | tojson | safe if chart_data else '{}' }};
+    const forecastData = {{ forecast_data | tojson | safe if forecast_data else '{}' }};
+
+    document.addEventListener('DOMContentLoaded', function() {
+        if (chartData && chartData.dates && chartData.dates.length > 0) {
+            initActualVsPredChart(chartData);
+        }
+        if (forecastData && forecastData.steps && forecastData.steps.length > 0) {
+            initForecastChart(forecastData);
+        }
+    });
+
+    function applyFilter() {
+        const stock = document.getElementById('stockSelect').value;
+        const model = document.getElementById('modelSelect').value;
+        window.location.href = `/dashboard?stock=${stock}&model=${model}`;
+    }
+</script>
+{% endblock %}

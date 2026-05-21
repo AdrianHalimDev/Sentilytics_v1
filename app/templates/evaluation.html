@@ -1,0 +1,155 @@
+{% extends "base.html" %}
+
+{% block title %}Model Evaluation — Sentilytics{% endblock %}
+{% block page_title %}Model Evaluation{% endblock %}
+
+{% block content %}
+<!-- All Models Evaluation Table -->
+<div class="card mb-3">
+    <div class="card-header">
+        <h3 class="card-title">Perbandingan Evaluasi Semua Model</h3>
+        <span class="badge badge-primary">RMSE / MAE / MAPE</span>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="data-table" id="evalTable">
+                <thead>
+                    <tr>
+                        <th>Emiten</th>
+                        <th>Model</th>
+                        <th>Features</th>
+                        <th>RMSE</th>
+                        <th>MAE</th>
+                        <th>MAPE (%)</th>
+                        <th>Window Size</th>
+                        <th>Epochs</th>
+                        <th>Batch Size</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% if all_metrics %}
+                        {% for row in all_metrics %}
+                        <tr>
+                            <td><span class="badge badge-info">{{ row.stock }}</span></td>
+                            <td>
+                                {% if row.model == 'Hybrid LSTM' %}
+                                    <span class="badge badge-primary">{{ row.model }}</span>
+                                {% else %}
+                                    <span class="badge badge-secondary">{{ row.model }}</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-sm">{{ row.features }}</td>
+                            <td class="font-bold">{{ "{:.2f}".format(row.rmse) }}</td>
+                            <td class="font-bold">{{ "{:.2f}".format(row.mae) }}</td>
+                            <td class="font-bold">{{ "{:.4f}".format(row.mape) }}%</td>
+                            <td>{{ row.window_size }}</td>
+                            <td>{{ row.epochs }}</td>
+                            <td>{{ row.batch_size }}</td>
+                        </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr>
+                            <td colspan="9" class="text-center text-muted" style="padding: 40px;">
+                                Data evaluasi belum tersedia. Jalankan pipeline training terlebih dahulu.
+                            </td>
+                        </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Comparison Charts -->
+{% if all_metrics %}
+<div class="grid-2">
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">Perbandingan RMSE</h3>
+        </div>
+        <div class="card-body">
+            <div class="chart-container">
+                <canvas id="rmseCompareChart"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">Perbandingan MAPE (%)</h3>
+        </div>
+        <div class="card-body">
+            <div class="chart-container">
+                <canvas id="mapeCompareChart"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<div class="disclaimer mt-3">
+    <strong>📌 Catatan:</strong>
+    Evaluasi utama menggunakan metrik RMSE, MAE, dan MAPE pada data test set (prediksi Close Price H+1).
+    Perbandingan Baseline vs Hybrid didasarkan pada nilai error — semakin kecil error, semakin baik performa model.
+    Hasil ini <strong>bukan klaim signifikan secara statistik</strong> tanpa uji lebih lanjut.
+</div>
+{% endblock %}
+
+{% block disclaimer %}{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    const evalData = {{ eval_chart_data | tojson | safe if eval_chart_data else '{}' }};
+
+    document.addEventListener('DOMContentLoaded', function() {
+        if (evalData && evalData.labels && evalData.labels.length > 0) {
+            // RMSE Comparison Chart
+            new Chart(document.getElementById('rmseCompareChart'), {
+                type: 'bar',
+                data: {
+                    labels: evalData.labels,
+                    datasets: [{
+                        label: 'RMSE',
+                        data: evalData.rmse,
+                        backgroundColor: ['rgba(67,97,238,0.7)', 'rgba(123,47,247,0.7)', 'rgba(67,97,238,0.4)', 'rgba(123,47,247,0.4)'],
+                        borderRadius: 6,
+                        borderSkipped: false,
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        y: { beginAtZero: false, grid: { color: 'rgba(0,0,0,0.05)' } },
+                        x: { grid: { display: false } }
+                    }
+                }
+            });
+
+            // MAPE Comparison Chart
+            new Chart(document.getElementById('mapeCompareChart'), {
+                type: 'bar',
+                data: {
+                    labels: evalData.labels,
+                    datasets: [{
+                        label: 'MAPE (%)',
+                        data: evalData.mape,
+                        backgroundColor: ['rgba(253,126,20,0.7)', 'rgba(220,53,69,0.7)', 'rgba(253,126,20,0.4)', 'rgba(220,53,69,0.4)'],
+                        borderRadius: 6,
+                        borderSkipped: false,
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        y: { beginAtZero: true, grid: { color: 'rgba(0,0,0,0.05)' } },
+                        x: { grid: { display: false } }
+                    }
+                }
+            });
+        }
+    });
+</script>
+{% endblock %}
