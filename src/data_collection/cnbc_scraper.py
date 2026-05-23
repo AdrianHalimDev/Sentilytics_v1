@@ -76,10 +76,21 @@ def scrape_cnbc_search(keyword, max_pages=5):
     articles = []
     stock = KEYWORD_STOCK_MAP.get(keyword, 'SECTOR')
 
+    tag_keyword = keyword.lower().replace(" ", "-")
+    url = f"https://www.cnbcindonesia.com/tag/{tag_keyword}"
+
+    session = requests.Session()
+    from requests.adapters import HTTPAdapter
+    from urllib3.util.retry import Retry
+    retry = Retry(total=5, connect=5, read=5, backoff_factor=1, status_forcelist=[429, 500, 502, 503, 504])
+    adapter = HTTPAdapter(max_retries=retry)
+    session.mount('http://', adapter)
+    session.mount('https://', adapter)
+
     for page in range(1, max_pages + 1):
         try:
-            params = {'query': keyword, 'page': page}
-            response = requests.get(CNBC_SEARCH_URL, params=params,
+            params = {'page': page}
+            response = session.get(url, params=params,
                                     headers=HEADERS, timeout=15)
 
             if response.status_code != 200:
@@ -163,7 +174,7 @@ def run_cnbc_scraper():
 
     for keyword in all_keywords:
         print(f"\n[INFO] Scraping CNBC for: '{keyword}'")
-        articles = scrape_cnbc_search(keyword, max_pages=5)
+        articles = scrape_cnbc_search(keyword, max_pages=15)
         print(f"[INFO] Found {len(articles)} articles for '{keyword}'")
         all_articles.extend(articles)
         time.sleep(2)  # Delay between keywords
