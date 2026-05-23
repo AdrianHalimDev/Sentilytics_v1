@@ -1,0 +1,5 @@
+date,stock,total_news,avg_sentiment_score,total_sentiment_score,positive_count,neutral_count,negative_count
+2024-09-17,BBCA,1,1.6666666666666667,1.6666666666666667,1,0,0
+2024-09-26,BBCA,2,2.0,4.0,2,0,0
+2024-12-13,BBCA,1,1.0,1.0,1,0,0
+2024-12-31,BBCA,1,0.6666666666666666,0.6666666666666666,1,0,0

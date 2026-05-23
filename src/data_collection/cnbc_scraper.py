@@ -112,27 +112,32 @@ def scrape_cnbc_search(keyword, max_pages=5):
 
             for article in article_elements:
                 try:
-                    # Extract title and URL
-                    title_el = article.select_one('h2 a') or article.select_one('h3 a') or \
-                               article.select_one('.media__title a') or article.select_one('a')
-
-                    if not title_el:
-                        continue
-
-                    title = title_el.get_text(strip=True)
-                    url = title_el.get('href', '')
-
-                    if not url.startswith('http'):
+                    # Extract URL
+                    url_el = article.select_one('a')
+                    url = url_el.get('href', '') if url_el else ''
+                    if not url.startswith('http') and url:
                         url = 'https://www.cnbcindonesia.com' + url
 
-                    # Extract date
-                    date_el = article.select_one('.date') or article.select_one('time') or \
-                              article.select_one('.media__date') or article.select_one('.text-sm')
-                    date_str = date_el.get_text(strip=True) if date_el else ''
-                    date_time = date_el.get('datetime', '') if date_el else ''
-                    parsed_date = parse_cnbc_date(date_time or date_str)
+                    # Extract title
+                    title_el = article.select_one('h2') or article.select_one('h3')
+                    if not title_el:
+                        continue
+                    title = title_el.get_text(strip=True)
 
-                    # Extract summary
+                    # Extract date
+                    date_el = article.select_one('.text-xs.text-gray') or article.select_one('.date') or article.select_one('time')
+                    date_str = date_el.get_text(strip=True) if date_el else ''
+                    
+                    parsed_date = parse_cnbc_date(date_str)
+                    
+                    # Fallback to extracting exact date from URL (format: YYYYMMDDHHMMSS)
+                    if not parsed_date and url:
+                        url_date_match = re.search(r'/(\d{4})(\d{2})(\d{2})\d{6}', url)
+                        if url_date_match:
+                            year, month, day = url_date_match.groups()
+                            parsed_date = f"{year}-{month}-{day}"
+
+                    # Extract summary (often absent in tag pages, but keep fallback)
                     summary_el = article.select_one('p') or article.select_one('.media__desc')
                     summary = summary_el.get_text(strip=True) if summary_el else ''
 

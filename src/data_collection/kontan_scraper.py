@@ -94,10 +94,22 @@ def scrape_kontan_search(keyword, max_pages=5):
     articles = []
     stock = KEYWORD_STOCK_MAP.get(keyword, 'SECTOR')
 
+    session = requests.Session()
+    from requests.adapters import HTTPAdapter
+    from urllib3.util.retry import Retry
+    retry = Retry(total=5, connect=5, read=5, backoff_factor=1, status_forcelist=[429, 500, 502, 503, 504])
+    adapter = HTTPAdapter(max_retries=retry)
+    session.mount('http://', adapter)
+    session.mount('https://', adapter)
+
     for page in range(1, max_pages + 1):
         try:
-            params = {'search': keyword, 'page': page}
-            response = requests.get(KONTAN_SEARCH_URL, params=params,
+            offset = (page - 1) * 20
+            params = {'search': keyword}
+            if offset > 0:
+                params['per_page'] = offset
+            
+            response = session.get(KONTAN_SEARCH_URL, params=params,
                                     headers=HEADERS, timeout=15)
 
             if response.status_code != 200:
@@ -132,8 +144,8 @@ def scrape_kontan_search(keyword, max_pages=5):
                     title = title_el.get_text(strip=True)
                     url = title_el.get('href', '')
 
-                    if not url.startswith('http'):
-                        url = 'https://www.kontan.co.id' + url
+                    import urllib.parse
+                    url = urllib.parse.urljoin('https://www.kontan.co.id', url)
 
                     # Skip non-article links
                     if not title or len(title) < 10:
@@ -143,6 +155,9 @@ def scrape_kontan_search(keyword, max_pages=5):
                     date_el = article.select_one('.date') or article.select_one('time') or \
                               article.select_one('.font-gray')
                     date_str = date_el.get_text(strip=True) if date_el else ''
+                    if date_str.startswith('|'):
+                        date_str = date_str[1:].strip()
+                    
                     parsed_date = parse_kontan_date(date_str)
 
                     # Extract summary
@@ -186,7 +201,7 @@ def run_kontan_scraper():
 
     for keyword in all_keywords:
         print(f"\n[INFO] Scraping Kontan for: '{keyword}'")
-        articles = scrape_kontan_search(keyword, max_pages=5)
+        articles = scrape_kontan_search(keyword, max_pages=15)
         print(f"[INFO] Found {len(articles)} articles for '{keyword}'")
         all_articles.extend(articles)
         time.sleep(2)
