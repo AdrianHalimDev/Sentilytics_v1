@@ -144,16 +144,18 @@ def generate_forecast(stock_name, model_type):
         close_idx = feature_columns.index('close')
         new_row[close_idx] = pred_scaled
 
-        # If hybrid, set sentiment to the assumed value
         if model_type == 'hybrid' and sentiment_assumption is not None:
             sent_idx = feature_columns.index('sentiment_score')
-            # Scale the sentiment assumption
-            sent_dummy = np.zeros((1, n_features + 1))
-            sent_dummy[0, sent_idx] = sentiment_assumption
-            # We need the scaled version; approximate by using the scaler
-            # Simple approach: keep the existing scaled value
-            # Actually, we can create a proper scaled value
-            pass  # Keep last known scaled sentiment value
+
+            sent_min = scaler.data_min_[sent_idx]
+            sent_max = scaler.data_max_[sent_idx]
+
+            if sent_max != sent_min:
+                scaled_sentiment = (sentiment_assumption - sent_min) / (sent_max - sent_min)
+            else:
+                scaled_sentiment = 0
+
+            new_row[sent_idx] = scaled_sentiment
 
         # Shift sequence: remove first, add new
         current_sequence = np.vstack([current_sequence[1:], new_row.reshape(1, -1)])
