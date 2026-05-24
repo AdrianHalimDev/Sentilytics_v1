@@ -1,8 +1,8 @@
 step,stock,model,predicted_close,sentiment_assumption,forecast_type
-H+1,BBCA,Hybrid LSTM,8967.43,1.1825,simulation
-H+2,BBCA,Hybrid LSTM,8952.1,1.1825,simulation
-H+3,BBCA,Hybrid LSTM,8943.92,1.1825,simulation
-H+4,BBCA,Hybrid LSTM,8940.78,1.1825,simulation
-H+5,BBCA,Hybrid LSTM,8941.15,1.1825,simulation
-H+6,BBCA,Hybrid LSTM,8943.79,1.1825,simulation
-H+7,BBCA,Hybrid LSTM,8947.79,1.1825,simulation
+H+1,BBCA,Hybrid LSTM,9004.38,1.6190,simulation
+H+2,BBCA,Hybrid LSTM,9002.93,1.6190,simulation
+H+3,BBCA,Hybrid LSTM,9005.5,1.6190,simulation
+H+4,BBCA,Hybrid LSTM,9009.84,1.6190,simulation
+H+5,BBCA,Hybrid LSTM,9014.76,1.6190,simulation
+H+6,BBCA,Hybrid LSTM,9019.56,1.6190,simulation
+H+7,BBCA,Hybrid LSTM,9023.84,1.6190,simulation

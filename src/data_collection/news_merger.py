@@ -75,7 +75,7 @@ def deduplicate_news(df):
     df = df.drop(columns=['_norm_title'])
     after_title = len(df)
 
-    print(f"[INFO] Deduplication: {before_count} → {after_url} (URL) → {after_title} (title)")
+    print(f"[INFO] Deduplication: {before_count} -> {after_url} (URL) -> {after_title} (title)")
 
     return df.reset_index(drop=True)
 
