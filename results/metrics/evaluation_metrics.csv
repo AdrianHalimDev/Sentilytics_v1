@@ -1,5 +1,5 @@
 stock,model,features,rmse,mae,mape,window_size,epochs,batch_size
-BBCA,Baseline LSTM,"open, high, low, close, volume",171.463,138.5477,1.4679,30,50,32
-BBCA,Hybrid LSTM,"open, high, low, close, volume, sentiment_score",171.5914,135.8954,1.4371,30,50,32
-BBRI,Baseline LSTM,"open, high, low, close, volume",111.0749,90.4177,2.3947,30,50,32
-BBRI,Hybrid LSTM,"open, high, low, close, volume, sentiment_score",105.2065,87.8393,2.32,30,50,32
+BBCA,Baseline LSTM,"open, high, low, close, volume",172.5521,139.1064,1.4805,30,50,32
+BBCA,Hybrid LSTM,"open, high, low, close, volume, sentiment_score",171.6592,137.6258,1.4595,30,50,32
+BBRI,Baseline LSTM,"open, high, low, close, volume",106.9682,89.4591,2.3589,30,50,32
+BBRI,Hybrid LSTM,"open, high, low, close, volume, sentiment_score",93.4612,80.6113,2.1303,30,50,32
