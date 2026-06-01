@@ -146,15 +146,12 @@ def generate_forecast(stock_name, model_type):
 
         if model_type == 'hybrid' and sentiment_assumption is not None:
             sent_idx = feature_columns.index('sentiment_score')
-
             sent_min = scaler.data_min_[sent_idx]
             sent_max = scaler.data_max_[sent_idx]
-
             if sent_max != sent_min:
                 scaled_sentiment = (sentiment_assumption - sent_min) / (sent_max - sent_min)
             else:
                 scaled_sentiment = 0
-
             new_row[sent_idx] = scaled_sentiment
 
         # Shift sequence: remove first, add new

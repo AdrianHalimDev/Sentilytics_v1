@@ -14,11 +14,12 @@ from app.services.prediction_service import (
 from app.services.chart_service import (
     prepare_actual_vs_predicted_chart,
     prepare_forecast_chart,
-    prepare_evaluation_chart
+    prepare_evaluation_chart,
+    prepare_error_over_time_chart,
 )
 from app.services.dataset_service import (
     get_stock_counts, get_news_count, get_news_processed_count,
-    get_dataset_files, get_sentiment_stats
+    get_dataset_files, get_sentiment_stats, get_historical_prices,
 )
 
 dashboard_bp = Blueprint('dashboard', __name__)
@@ -35,9 +36,33 @@ def dashboard():
     metrics = get_metrics(stock, model)
     prediction_h1 = get_prediction_h1(stock, model)
     forecast = get_forecast(stock, model)
+    historical = get_historical_prices(stock)
 
-    chart_data = prepare_actual_vs_predicted_chart(predictions)
+    # Full-range chart: historical + test predictions
+    chart_data = prepare_actual_vs_predicted_chart(predictions, historical=historical)
     forecast_data = prepare_forecast_chart(forecast)
+
+    # Build train/test period info for the info cards
+    train_info = None
+    test_info = None
+    if historical and predictions:
+        all_dates = historical['dates']
+        split_date = predictions[0].date if predictions else None
+        last_date = predictions[-1].date if predictions else None
+        train_count = chart_data.get('train_count', 0)
+        test_count = chart_data.get('test_count', 0)
+
+        if split_date and all_dates:
+            train_info = {
+                'start': all_dates[0],
+                'end': all_dates[train_count - 1] if train_count > 0 else split_date,
+                'count': train_count,
+            }
+            test_info = {
+                'start': split_date,
+                'end': last_date,
+                'count': test_count,
+            }
 
     return render_template('dashboard.html',
                            stock=stock,
@@ -46,7 +71,9 @@ def dashboard():
                            metrics=metrics,
                            prediction_h1=prediction_h1,
                            chart_data=chart_data,
-                           forecast_data=forecast_data)
+                           forecast_data=forecast_data,
+                           train_info=train_info,
+                           test_info=test_info)
 
 
 @dashboard_bp.route('/prediction')
@@ -70,12 +97,25 @@ def prediction():
 @login_required
 def evaluation():
     """Model evaluation comparison page."""
+    stock = request.args.get('stock', 'BBCA')
+    model = request.args.get('model', 'baseline')
+    model_label = 'Baseline LSTM' if model == 'baseline' else 'Hybrid LSTM'
+
     all_metrics = get_all_metrics()
     eval_chart_data = prepare_evaluation_chart(all_metrics)
 
+    # Load predictions for error-over-time chart
+    predictions = get_predictions(stock, model)
+    error_chart_data = prepare_error_over_time_chart(predictions)
+
     return render_template('evaluation.html',
                            all_metrics=all_metrics,
-                           eval_chart_data=eval_chart_data)
+                           eval_chart_data=eval_chart_data,
+                           error_chart_data=error_chart_data,
+                           stock=stock,
+                           model=model,
+                           model_label=model_label,
+                           predictions=predictions)
 
 
 @dashboard_bp.route('/forecast')
@@ -89,18 +129,23 @@ def forecast():
     forecast_data = get_forecast(stock, model)
     forecast_chart_data = prepare_forecast_chart(forecast_data)
 
+    # Get the last date in predictions to calculate actual forecast dates
+    predictions = get_predictions(stock, model)
+    last_pred_date = predictions[-1].date if predictions else None
+
     return render_template('forecast.html',
                            stock=stock,
                            model=model,
                            model_label=model_label,
                            forecast=forecast_data,
-                           forecast_chart_data=forecast_chart_data)
+                           forecast_chart_data=forecast_chart_data,
+                           last_pred_date=last_pred_date)
 
 
 @dashboard_bp.route('/dataset-summary')
 @login_required
 def dataset_summary():
-    """Dataset summary page (admin feature, but accessible to users for info)."""
+    """Dataset summary page."""
     stock_counts = get_stock_counts()
     news_count = get_news_count()
     news_processed_count = get_news_processed_count()

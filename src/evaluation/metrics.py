@@ -48,7 +48,7 @@ def evaluate_model(stock_name, model_type):
 
     Args:
         stock_name: 'BBCA' or 'BBRI'
-        model_type: 'baseline' or 'hybrid'
+        model_type: 'baseline', 'hybrid', or 'hybrid_full'
 
     Returns:
         dict with evaluation metrics or None
@@ -68,8 +68,16 @@ def evaluate_model(stock_name, model_type):
     mae = calculate_mae(actual, predicted)
     mape = calculate_mape(actual, predicted)
 
-    model_label = 'Baseline LSTM' if model_type == 'baseline' else 'Hybrid LSTM'
-    features = ', '.join(BASELINE_FEATURES if model_type == 'baseline' else HYBRID_FEATURES)
+    # Determine model label and features string
+    if model_type == 'baseline':
+        model_label = 'Baseline LSTM'
+        features = ', '.join(BASELINE_FEATURES)
+    elif model_type == 'hybrid':
+        model_label = 'Hybrid LSTM'
+        features = ', '.join(HYBRID_FEATURES)
+    else:
+        model_label = model_type
+        features = ''
 
     result = {
         'stock': stock_name,
@@ -92,13 +100,16 @@ def evaluate_model(stock_name, model_type):
 
 
 def run_evaluation():
-    """Evaluate all models and save metrics."""
+    """Evaluate all models (baseline, hybrid, hybrid_full) and save metrics."""
     ensure_dir(RESULTS_METRICS_DIR)
 
     all_results = []
 
+    # Evaluate all model types — skip if predictions file doesn't exist
+    model_types = ['baseline', 'hybrid']
+
     for stock_name in STOCK_NAMES:
-        for model_type in ['baseline', 'hybrid']:
+        for model_type in model_types:
             result = evaluate_model(stock_name, model_type)
             if result:
                 all_results.append(result)

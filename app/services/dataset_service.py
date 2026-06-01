@@ -1,6 +1,6 @@
 """
 Sentilytics — Dataset Service
-Provides dataset summary information for admin panel.
+Provides dataset summary information for admin panel and dashboard.
 """
 
 import os
@@ -127,3 +127,26 @@ def get_model_status():
                 'prediction_exists': os.path.exists(pred_file),
             })
     return status
+
+
+def get_historical_prices(stock):
+    """
+    Load full historical close prices (training + test period).
+    Returns dict: dates (list), close (list), total_rows (int).
+    Used to build the full-range Actual vs Predicted chart.
+    """
+    filepath = os.path.join(PROJECT_ROOT, 'data', 'processed', 'stock',
+                            f'{stock}_processed.csv')
+    if not os.path.exists(filepath):
+        return None
+    try:
+        df = pd.read_csv(filepath)
+        df = df.sort_values('date').reset_index(drop=True)
+        return {
+            'dates': df['date'].tolist(),
+            'close': [round(float(v), 2) for v in df['close'].tolist()],
+            'total_rows': len(df),
+        }
+    except Exception as e:
+        print(f"[ERROR] get_historical_prices({stock}): {e}")
+        return None

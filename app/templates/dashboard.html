@@ -23,7 +23,7 @@
     </button>
 </div>
 
-<!-- Metric Cards -->
+<!-- Metric Cards (Model Performance) -->
 <div class="metric-cards" id="metricCards">
     <div class="metric-card primary">
         <div class="metric-card-header">
@@ -74,16 +74,63 @@
     </div>
 </div>
 
+<!-- Period Info Cards -->
+{% if train_info and test_info %}
+<div class="metric-cards" style="grid-template-columns: repeat(3, 1fr); margin-bottom: 24px;">
+    <div class="metric-card" style="border-left: 4px solid #4361ee;">
+        <div class="metric-card-header">
+            <span class="metric-card-label">Training Period</span>
+            <div class="metric-card-icon">🧠</div>
+        </div>
+        <div class="metric-card-value" style="font-size:14px; font-weight:700; color:#4361ee;">
+            {{ train_info.start }} → {{ train_info.end }}
+        </div>
+        <div class="metric-card-sub">{{ train_info.count }} hari perdagangan</div>
+    </div>
+
+    <div class="metric-card" style="border-left: 4px solid #fd7e14;">
+        <div class="metric-card-header">
+            <span class="metric-card-label">Test Period</span>
+            <div class="metric-card-icon">🧪</div>
+        </div>
+        <div class="metric-card-value" style="font-size:14px; font-weight:700; color:#fd7e14;">
+            {{ test_info.start }} → {{ test_info.end }}
+        </div>
+        <div class="metric-card-sub">{{ test_info.count }} hari perdagangan</div>
+    </div>
+
+    <div class="metric-card" style="border-left: 4px solid #198754;">
+        <div class="metric-card-header">
+            <span class="metric-card-label">Split Ratio</span>
+            <div class="metric-card-icon">✂️</div>
+        </div>
+        <div class="metric-card-value" style="font-size:20px; font-weight:800; color:#198754;">
+            80 : 20
+        </div>
+        <div class="metric-card-sub">Train : Test ({{ train_info.count + test_info.count }} total data)</div>
+    </div>
+</div>
+{% endif %}
+
 <!-- Charts Row -->
 <div class="grid-2">
-    <!-- Actual vs Predicted Chart -->
+    <!-- Actual vs Predicted Chart (Full Historical) -->
     <div class="card">
         <div class="card-header">
             <h3 class="card-title">Actual vs Predicted Close Price</h3>
-            <span class="badge badge-info">Test Set</span>
+            <div style="display:flex; align-items:center; gap:10px;">
+                <span class="badge badge-info">Full History + Test Set</span>
+                <span class="text-xs text-muted" style="font-size:11px;">🖱️ Scroll = Zoom &nbsp;|&nbsp; Drag = Geser</span>
+                <button id="resetZoomBtn_actualVsPredChart"
+                        class="btn btn-sm btn-outline"
+                        style="display:none; padding:4px 10px; font-size:11px;"
+                        onclick="resetActualVsPredZoom()">
+                    ↺ Reset Zoom
+                </button>
+            </div>
         </div>
         <div class="card-body">
-            <div class="chart-container">
+            <div class="chart-container" style="min-height: 380px;">
                 <canvas id="actualVsPredChart"></canvas>
             </div>
         </div>
@@ -93,20 +140,30 @@
     <div class="card">
         <div class="card-header">
             <h3 class="card-title">Forecast H+7 (Simulasi)</h3>
-            <span class="badge badge-warning">Simulasi</span>
+            <div style="display:flex; align-items:center; gap:10px;">
+                <span class="badge badge-warning">Simulasi</span>
+                <span class="text-xs text-muted" style="font-size:11px;">🖱️ Scroll = Zoom &nbsp;|&nbsp; Drag = Geser</span>
+                <button id="resetZoomBtn_forecastChart"
+                        class="btn btn-sm btn-outline"
+                        style="display:none; padding:4px 10px; font-size:11px;"
+                        onclick="resetForecastZoom()">
+                    ↺ Reset Zoom
+                </button>
+            </div>
         </div>
         <div class="card-body">
-            <div class="chart-container">
+            <div class="chart-container" style="min-height: 380px;">
                 <canvas id="forecastChart"></canvas>
             </div>
         </div>
     </div>
 </div>
 
-<!-- Prediction Table -->
+<!-- Prediction Table (last 20 of test set) -->
 <div class="card mt-3">
     <div class="card-header">
-        <h3 class="card-title">Data Prediksi (Sample Terakhir)</h3>
+        <h3 class="card-title">Data Prediksi Test Set (20 Data Terakhir)</h3>
+        <span class="badge badge-secondary">{{ stock }} {{ model | upper }}</span>
     </div>
     <div class="card-body p-0">
         <div class="table-responsive">
@@ -147,7 +204,6 @@
 
 {% block extra_scripts %}
 <script>
-    // Initialize charts with data from server
     const chartData = {{ chart_data | tojson | safe if chart_data else '{}' }};
     const forecastData = {{ forecast_data | tojson | safe if forecast_data else '{}' }};
 

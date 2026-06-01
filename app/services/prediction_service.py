@@ -6,6 +6,7 @@ Dashboard only reads pre-computed results — never trains models.
 
 import os
 import pandas as pd
+from datetime import datetime, timedelta
 from types import SimpleNamespace
 
 
@@ -108,10 +109,30 @@ def get_all_metrics():
         return []
 
 
+def _next_business_days(start_date_str, n):
+    """
+    Return list of n business day date strings (YYYY-MM-DD) after start_date_str.
+    Skips Saturdays (5) and Sundays (6).
+    Note: Does not account for Indonesian public holidays.
+    """
+    try:
+        base = datetime.strptime(start_date_str, '%Y-%m-%d')
+    except Exception:
+        return [f"H+{i+1}" for i in range(n)]
+
+    result = []
+    current = base
+    while len(result) < n:
+        current += timedelta(days=1)
+        if current.weekday() < 5:  # Mon–Fri
+            result.append(current.strftime('%Y-%m-%d'))
+    return result
+
+
 def get_forecast(stock, model):
     """
     Load forecast H+7 data for a given stock and model.
-    Returns list of SimpleNamespace objects.
+    Returns list of SimpleNamespace objects, each enriched with forecast_date.
     """
     model_name = 'baseline' if model == 'baseline' else 'hybrid'
     filename = f"{stock}_{model_name}_forecast_h7.csv"
@@ -120,17 +141,41 @@ def get_forecast(stock, model):
     if not os.path.exists(filepath):
         return []
 
+    # Load last prediction date to compute actual forecast dates
+    pred_file = os.path.join(PREDICTIONS_DIR, f"{stock}_{model_name}_predictions.csv")
+    last_pred_date = None
+    if os.path.exists(pred_file):
+        try:
+            pred_df = pd.read_csv(pred_file)
+            last_pred_date = pred_df['date'].iloc[-1]
+        except Exception:
+            pass
+
+    # Precompute business day dates for H+1 to H+7
+    forecast_dates = []
+    if last_pred_date:
+        forecast_dates = _next_business_days(last_pred_date, 7)
+
     try:
         df = pd.read_csv(filepath)
+
+        # pandas reads empty CSV cells as NaN (float), convert to empty string
+        def safe_str(val, default=''):
+            if pd.isna(val):
+                return default
+            return str(val).strip()
+
         results = []
-        for _, row in df.iterrows():
+        for i, (_, row) in enumerate(df.iterrows()):
+            forecast_date = forecast_dates[i] if i < len(forecast_dates) else ''
             results.append(SimpleNamespace(
-                step=row.get('step', ''),
-                stock=row.get('stock', stock),
-                model=row.get('model', ''),
+                step=safe_str(row.get('step', '')),
+                stock=safe_str(row.get('stock', stock), default=stock),
+                model=safe_str(row.get('model', '')),
                 predicted_close=float(row.get('predicted_close', 0)),
-                sentiment_assumption=row.get('sentiment_assumption', ''),
-                forecast_type=row.get('forecast_type', 'simulation'),
+                sentiment_assumption=safe_str(row.get('sentiment_assumption', '')),
+                forecast_type=safe_str(row.get('forecast_type', 'simulation'), default='simulation'),
+                forecast_date=forecast_date,
             ))
         return results
     except Exception as e:

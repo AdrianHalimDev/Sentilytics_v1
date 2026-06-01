@@ -378,7 +378,16 @@ a:hover {
     box-shadow: var(--shadow-card);
     border: 1px solid var(--border-color);
     transition: all var(--transition);
-    overflow: hidden;
+    overflow: visible;
+}
+
+/* Allow table-responsive to scroll inside card while keeping rounded corners */
+.card .table-responsive {
+    overflow-x: auto;
+    overflow-y: visible;
+    border-radius: 0 0 var(--border-radius) var(--border-radius);
+    max-height: 500px;
+    overflow-y: auto;
 }
 
 .card:hover {

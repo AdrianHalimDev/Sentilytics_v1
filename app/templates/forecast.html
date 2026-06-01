@@ -25,7 +25,16 @@
 <div class="card mb-3">
     <div class="card-header">
         <h3 class="card-title">Simulasi Forecast H+7 — {{ stock }} {{ model_label }}</h3>
-        <span class="badge badge-warning">Simulasi</span>
+        <div style="display:flex; align-items:center; gap:10px;">
+            <span class="badge badge-warning">Simulasi</span>
+            <span class="text-xs text-muted" style="font-size:11px;">🖱️ Scroll = Zoom &nbsp;|&nbsp; Drag = Geser</span>
+            <button id="resetZoomBtn_forecastMainChart"
+                    class="btn btn-sm btn-outline"
+                    style="display:none; padding:4px 10px; font-size:11px;"
+                    onclick="document.getElementById('forecastMainChart')._chartInstance && document.getElementById('forecastMainChart')._chartInstance.resetZoom(); this.style.display='none'">
+                ↺ Reset Zoom
+            </button>
+        </div>
     </div>
     <div class="card-body">
         <div class="chart-container">
@@ -38,6 +47,9 @@
 <div class="card">
     <div class="card-header">
         <h3 class="card-title">Detail Forecast H+7</h3>
+        {% if last_pred_date %}
+        <span class="text-xs text-muted" style="font-size:12px;">📅 Basis data terakhir: <strong>{{ last_pred_date }}</strong></span>
+        {% endif %}
     </div>
     <div class="card-body p-0">
         <div class="table-responsive">
@@ -45,6 +57,7 @@
                 <thead>
                     <tr>
                         <th>Step</th>
+                        <th>Tanggal Prediksi</th>
                         <th>Emiten</th>
                         <th>Model</th>
                         <th>Predicted Close</th>
@@ -57,16 +70,31 @@
                         {% for row in forecast %}
                         <tr>
                             <td><span class="badge badge-info">{{ row.step }}</span></td>
+                            <td>
+                                {% if row.forecast_date %}
+                                    <strong>{{ row.forecast_date }}</strong>
+                                {% else %}
+                                    <span class="text-muted">—</span>
+                                {% endif %}
+                            </td>
                             <td>{{ row.stock }}</td>
                             <td>{{ row.model }}</td>
                             <td class="font-bold">Rp {{ "{:,.0f}".format(row.predicted_close) }}</td>
-                            <td>{{ row.sentiment_assumption if row.sentiment_assumption else '—' }}</td>
+                            <td>
+                                {% if row.sentiment_assumption %}
+                                    {{ row.sentiment_assumption }}
+                                {% elif row.model and 'Hybrid' in row.model %}
+                                    <span class="text-muted">—</span>
+                                {% else %}
+                                    <span class="badge badge-secondary">N/A</span>
+                                {% endif %}
+                            </td>
                             <td><span class="badge badge-warning">{{ row.forecast_type }}</span></td>
                         </tr>
                         {% endfor %}
                     {% else %}
                         <tr>
-                            <td colspan="6" class="text-center text-muted" style="padding: 40px;">
+                            <td colspan="7" class="text-center text-muted" style="padding: 40px;">
                                 Data forecast belum tersedia. Jalankan pipeline forecast terlebih dahulu.
                             </td>
                         </tr>
@@ -93,9 +121,23 @@
 <script>
     const fcData = {{ forecast_chart_data | tojson | safe if forecast_chart_data else '{}' }};
 
+    const zoomOpts = {
+        pan: { enabled: true, mode: 'x', threshold: 5 },
+        zoom: {
+            wheel: { enabled: true },
+            pinch: { enabled: true },
+            mode: 'x',
+            onZoomComplete({ chart }) {
+                const btn = document.getElementById('resetZoomBtn_forecastMainChart');
+                if (btn) btn.style.display = 'inline-flex';
+            }
+        },
+        limits: { x: { minRange: 2 } }
+    };
+
     document.addEventListener('DOMContentLoaded', function() {
         if (fcData && fcData.steps && fcData.steps.length > 0) {
-            new Chart(document.getElementById('forecastMainChart'), {
+            const chartInst = new Chart(document.getElementById('forecastMainChart'), {
                 type: 'line',
                 data: {
                     labels: fcData.steps,
@@ -118,17 +160,38 @@
                     maintainAspectRatio: false,
                     plugins: {
                         legend: { display: true },
+                        tooltip: {
+                            backgroundColor: 'rgba(30,41,59,0.95)',
+                            padding: 12,
+                            cornerRadius: 8,
+                            callbacks: {
+                                label: function(context) {
+                                    return 'Predicted: Rp ' +
+                                           context.parsed.y.toLocaleString('id-ID', {maximumFractionDigits: 0});
+                                }
+                            }
+                        },
+                        zoom: zoomOpts,
                     },
                     scales: {
                         y: {
                             grid: { color: 'rgba(0,0,0,0.05)' },
+                            ticks: {
+                                callback: function(value) {
+                                    return 'Rp ' + value.toLocaleString('id-ID');
+                                },
+                                font: { size: 11 }
+                            }
                         },
                         x: {
-                            grid: { display: false }
+                            grid: { display: false },
+                            ticks: { font: { size: 11 } }
                         }
                     }
                 }
             });
+            // store reference for reset button
+            document.getElementById('forecastMainChart')._chartInstance = chartInst;
         }
     });
 

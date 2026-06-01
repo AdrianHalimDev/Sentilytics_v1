@@ -1,43 +1,96 @@
 /**
  * Sentilytics — Dashboard JavaScript
- * Handles Chart.js initialization and interactive features.
+ * Interactive charts with zoom/pan and train/test split annotation.
+ *
+ * Controls:
+ *   🖱️ Scroll       → Zoom in/out (x-axis)
+ *   🖱️ Drag         → Pan left/right
+ *   Double-click    → Reset zoom
+ *   ↺ Button        → Reset zoom
  */
 
+// Chart instances (stored for reset)
+let actualVsPredChartInstance = null;
+let forecastChartInstance = null;
+
 // ==========================================
-// Chart: Actual vs Predicted
+// Shared zoom/pan plugin config
+// ==========================================
+function makeZoomConfig(resetBtnId) {
+    return {
+        pan: { enabled: true, mode: 'x', threshold: 5 },
+        zoom: {
+            wheel: { enabled: true },
+            pinch: { enabled: true },
+            mode: 'x',
+            onZoomComplete({ chart }) {
+                const btn = document.getElementById(resetBtnId);
+                if (btn) btn.style.display = 'inline-flex';
+            }
+        },
+        limits: { x: { minRange: 5 } }
+    };
+}
+
+// ==========================================
+// Chart: Actual vs Predicted (Full Range)
 // ==========================================
 function initActualVsPredChart(data) {
     const ctx = document.getElementById('actualVsPredChart');
     if (!ctx) return;
 
-    new Chart(ctx, {
+    // Build annotation for train/test split line
+    const annotations = {};
+    if (data.split_index != null && data.split_date) {
+        annotations.splitLine = {
+            type: 'line',
+            xMin: data.split_index,
+            xMax: data.split_index,
+            borderColor: 'rgba(220, 53, 69, 0.7)',
+            borderWidth: 2,
+            borderDash: [6, 4],
+            label: {
+                display: true,
+                content: '← Train | Test →',
+                position: 'start',
+                backgroundColor: 'rgba(220,53,69,0.85)',
+                color: '#fff',
+                font: { size: 11, weight: 'bold' },
+                padding: { x: 8, y: 4 },
+                borderRadius: 4,
+            }
+        };
+    }
+
+    actualVsPredChartInstance = new Chart(ctx, {
         type: 'line',
         data: {
             labels: data.dates,
             datasets: [
                 {
-                    label: 'Actual Close',
+                    label: 'Actual Close (Historis)',
                     data: data.actual,
                     borderColor: '#4361ee',
-                    backgroundColor: 'rgba(67,97,238,0.06)',
+                    backgroundColor: 'rgba(67,97,238,0.05)',
                     fill: true,
                     tension: 0.3,
-                    pointRadius: 1.5,
+                    pointRadius: 0,
                     pointHoverRadius: 5,
-                    borderWidth: 2.5,
+                    borderWidth: 2,
                     order: 1,
                 },
                 {
-                    label: 'Predicted Close',
+                    label: 'Predicted Close (Test Set)',
                     data: data.predicted,
                     borderColor: '#fd7e14',
                     backgroundColor: 'transparent',
                     fill: false,
                     tension: 0.3,
-                    pointRadius: 1.5,
+                    pointRadius: 0,
                     pointHoverRadius: 5,
                     borderWidth: 2.5,
                     borderDash: [5, 3],
+                    spanGaps: false,   // don't connect across nulls
                     order: 0,
                 }
             ]
@@ -45,10 +98,7 @@ function initActualVsPredChart(data) {
         options: {
             responsive: true,
             maintainAspectRatio: false,
-            interaction: {
-                mode: 'index',
-                intersect: false,
-            },
+            interaction: { mode: 'index', intersect: false },
             plugins: {
                 legend: {
                     position: 'top',
@@ -64,13 +114,19 @@ function initActualVsPredChart(data) {
                     bodyFont: { size: 12 },
                     padding: 12,
                     cornerRadius: 8,
+                    filter: function(item) {
+                        return item.parsed.y !== null;
+                    },
                     callbacks: {
                         label: function(context) {
+                            if (context.parsed.y === null) return null;
                             return context.dataset.label + ': Rp ' +
-                                   context.parsed.y.toLocaleString('id-ID', {maximumFractionDigits: 0});
+                                   context.parsed.y.toLocaleString('id-ID', { maximumFractionDigits: 0 });
                         }
                     }
-                }
+                },
+                annotation: { annotations },
+                zoom: makeZoomConfig('resetZoomBtn_actualVsPredChart'),
             },
             scales: {
                 y: {
@@ -84,10 +140,7 @@ function initActualVsPredChart(data) {
                 },
                 x: {
                     grid: { display: false },
-                    ticks: {
-                        maxTicksLimit: 12,
-                        font: { size: 11 }
-                    }
+                    ticks: { maxTicksLimit: 14, font: { size: 10 } }
                 }
             }
         }
@@ -101,7 +154,7 @@ function initForecastChart(data) {
     const ctx = document.getElementById('forecastChart');
     if (!ctx) return;
 
-    new Chart(ctx, {
+    forecastChartInstance = new Chart(ctx, {
         type: 'line',
         data: {
             labels: data.steps,
@@ -112,7 +165,7 @@ function initForecastChart(data) {
                 backgroundColor: 'rgba(123,47,247,0.08)',
                 fill: true,
                 tension: 0.3,
-                pointRadius: 6,
+                pointRadius: 7,
                 pointBackgroundColor: '#7b2ff7',
                 pointBorderColor: '#fff',
                 pointBorderWidth: 2,
@@ -138,10 +191,11 @@ function initForecastChart(data) {
                     callbacks: {
                         label: function(context) {
                             return 'Predicted: Rp ' +
-                                   context.parsed.y.toLocaleString('id-ID', {maximumFractionDigits: 0});
+                                   context.parsed.y.toLocaleString('id-ID', { maximumFractionDigits: 0 });
                         }
                     }
-                }
+                },
+                zoom: makeZoomConfig('resetZoomBtn_forecastChart'),
             },
             scales: {
                 y: {
@@ -160,4 +214,23 @@ function initForecastChart(data) {
             }
         }
     });
+}
+
+// ==========================================
+// Reset zoom helpers
+// ==========================================
+function resetActualVsPredZoom() {
+    if (actualVsPredChartInstance) {
+        actualVsPredChartInstance.resetZoom();
+        const btn = document.getElementById('resetZoomBtn_actualVsPredChart');
+        if (btn) btn.style.display = 'none';
+    }
+}
+
+function resetForecastZoom() {
+    if (forecastChartInstance) {
+        forecastChartInstance.resetZoom();
+        const btn = document.getElementById('resetZoomBtn_forecastChart');
+        if (btn) btn.style.display = 'none';
+    }
 }

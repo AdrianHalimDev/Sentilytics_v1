@@ -1,0 +1,5 @@
+stock,model,mape_mean,mape_std,mape_min,mape_max,rmse_mean,mae_mean,n_runs
+BBCA,Baseline LSTM,1.4598,0.0284,1.4291,1.5027,170.9898,137.7329,5
+BBCA,Hybrid LSTM,1.5051,0.0877,1.4359,1.6734,177.1901,141.9208,5
+BBRI,Baseline LSTM,2.2967,0.1845,2.1628,2.663,103.9416,86.975,5
+BBRI,Hybrid LSTM,2.2392,0.1107,2.1059,2.422,100.4359,84.7961,5

@@ -62,8 +62,8 @@ def preprocess_stock(stock_name):
 
     missing_before = df[ohlcv_cols].isnull().sum().sum()
     if missing_before > 0:
-        df[ohlcv_cols] = df[ohlcv_cols].fillna(method='ffill')
-        df[ohlcv_cols] = df[ohlcv_cols].fillna(method='bfill')
+        df[ohlcv_cols] = df[ohlcv_cols].ffill()
+        df[ohlcv_cols] = df[ohlcv_cols].bfill()
         print(f"[INFO] Filled {missing_before} missing values")
 
     # Validate: remove rows with zero or negative close
@@ -71,6 +71,9 @@ def preprocess_stock(stock_name):
     if invalid_mask.any():
         print(f"[WARNING] Removing {invalid_mask.sum()} rows with invalid close price")
         df = df[~invalid_mask].reset_index(drop=True)
+
+    # Format date as string
+    df['date'] = df['date'].dt.strftime('%Y-%m-%d')
 
     # Create target: Close Price H+1 (next day's close)
     df['target_close_h1'] = df['close'].shift(-1)
@@ -80,9 +83,6 @@ def preprocess_stock(stock_name):
 
     # Ensure stock column
     df['stock'] = stock_name
-
-    # Format date back to string
-    df['date'] = df['date'].dt.strftime('%Y-%m-%d')
 
     # Select final columns
     df = df[['date', 'stock', 'open', 'high', 'low', 'close', 'volume', 'target_close_h1']]
