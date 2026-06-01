@@ -48,7 +48,7 @@ def evaluate_model(stock_name, model_type):
 
     Args:
         stock_name: 'BBCA' or 'BBRI'
-        model_type: 'baseline', 'hybrid', or 'hybrid_full'
+        model_type: 'baseline' or 'hybrid'
 
     Returns:
         dict with evaluation metrics or None
@@ -100,7 +100,7 @@ def evaluate_model(stock_name, model_type):
 
 
 def run_evaluation():
-    """Evaluate all models (baseline, hybrid, hybrid_full) and save metrics."""
+    """Evaluate all models (baseline, hybrid) and save metrics."""
     ensure_dir(RESULTS_METRICS_DIR)
 
     all_results = []
