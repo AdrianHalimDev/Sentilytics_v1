@@ -21,6 +21,29 @@
 
 ---
 
+## 📸 Screenshots
+
+### Login & Register
+| Login | Register |
+|-------|----------|
+| ![Login](docs/screenshots/01_login_page.png) | ![Register](docs/screenshots/02_register_page.png) |
+
+### Dashboard Utama
+![Dashboard](docs/screenshots/03_dashboard_utama.png)
+
+### Model Evaluation
+![Evaluation](docs/screenshots/04_evaluation_page.png)
+
+### Forecast Simulation H+7
+![Forecast](docs/screenshots/05_forecast_h7.png)
+
+### Dataset Summary & Admin Panel
+| Dataset Summary | Admin Panel |
+|-----------------|-------------|
+| ![Dataset](docs/screenshots/06_dataset_summary.png) | ![Admin](docs/screenshots/07_admin_panel.png) |
+
+---
+
 ## 🛠️ Tech Stack
 
 | Komponen | Teknologi |
